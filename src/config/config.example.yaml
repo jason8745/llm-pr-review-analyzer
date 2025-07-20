@@ -1,0 +1,21 @@
+# LLM PR Review Analyzer Configuration Template
+# Copy this file to config.yaml and fill in your values
+
+github:
+  token: "your_github_personal_access_token_here"
+  api_base_url: "https://api.github.com"  # For GitHub.com or "https://your-enterprise.github.com/api/v3" for Enterprise
+
+llm:
+  temperature: 0.1      # Lower = more deterministic, Higher = more creative (0.0-2.0)
+  max_tokens: 4000      # Maximum tokens in response
+  retry: 3              # Number of retries on API failure
+
+azure_openai:
+  endpoint: "https://your-openai-resource.openai.azure.com/"
+  api_version: "2024-02-15-preview"
+  deployment: "gpt-4"   # Your Azure OpenAI deployment name
+  api_key: "your_azure_openai_api_key_here"
+
+app:
+  log_level: "INFO"     # DEBUG, INFO, WARNING, ERROR
+  max_comments_per_request: 100  # Maximum comments to process per request

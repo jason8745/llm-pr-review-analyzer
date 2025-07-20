@@ -1,0 +1,30 @@
+[project]
+name = "llm-pr-review-analyzer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+    "langchain-experimental>=0.3.4",
+    "langchain-openai>=0.3.23",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.4",
+    "langchain>=0.3.26",
+    "rich>=14.0.0",
+    "questionary>=2.1.0",
+    "pygithub>=2.6.1",
+    "typer>=0.16.0",
+    "python-dotenv>=1.1.1",
+    "langchain-core>=0.3.68",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.0",
+    "pyright>=1.1.402",
+]

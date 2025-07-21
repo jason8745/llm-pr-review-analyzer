@@ -111,8 +111,8 @@ def analyze(
 
         # Show analysis started panel
         with console.status("[bold blue]Fetching PR data..."):
-            # Fetch PR review data
-            client = GitHubClient(base_url=base_url)
+            # Fetch PR review data with explicit config injection
+            client = GitHubClient(base_url=base_url, config=config.github)
             pr_data = client.fetch_pr_reviews(repo, pr_number)
 
             if not pr_data:
@@ -228,7 +228,8 @@ def config_check():
     if config.github.token:
         try:
             console.print("\n[bold blue]Testing GitHub API connectivity...[/bold blue]")
-            client = GitHubClient()
+            # Use explicit config injection for better testability
+            client = GitHubClient(config=config.github)
             rate_limit = client.github.get_rate_limit()
             console.print(
                 f"✅ GitHub API: {rate_limit.core.remaining}/{rate_limit.core.limit} requests remaining"

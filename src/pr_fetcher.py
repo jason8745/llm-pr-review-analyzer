@@ -2,13 +2,15 @@
 
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from github import Auth, Github, GithubException
 from github.PullRequest import PullRequest
 from github.Repository import Repository
 
-from config.config import get_config
+if TYPE_CHECKING:
+    from config.config import GitHubConfig
+
 from models import PullRequestInfo, ReviewComment, ReviewData, ReviewState
 from utils import (
     GitHubAPIError,
@@ -24,23 +26,38 @@ logger = get_logger(__name__)
 class GitHubClient:
     """GitHub API client for fetching PR review data."""
 
-    def __init__(self, token: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(
+        self,
+        token: Optional[str] = None,
+        base_url: Optional[str] = None,
+        config: Optional["GitHubConfig"] = None,
+    ):
         """
         Initialize GitHub client.
 
         Args:
-            token: GitHub personal access token. If None, uses config.
+            token: GitHub personal access token. If provided, overrides config.
             base_url: GitHub API base URL for enterprise instances.
+            config: GitHubConfig object. If None, uses global config.
         """
-        config = get_config()
-        self.token = token or config.github.token.get_secret_value()
+        # Use dependency injection pattern
+        if config is None:
+            from config.config import get_config
+
+            config = get_config().github
+
+        # Priority: explicit token > config token
+        self.token = token or config.token.get_secret_value()
+
+        # Use base_url from parameter or config
+        api_base_url = base_url or config.api_base_url
 
         # Create authentication object
         auth = Auth.Token(self.token)
 
         # Configure for enterprise GitHub if base_url provided
-        if base_url:
-            self.github = Github(auth=auth, base_url=base_url)
+        if api_base_url != "https://api.github.com":
+            self.github = Github(auth=auth, base_url=api_base_url)
         else:
             self.github = Github(auth=auth)
 

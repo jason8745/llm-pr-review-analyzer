@@ -4,8 +4,43 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
+from pydantic import SecretStr
 
+from config.config import AppConfig, Config, GitHubConfig, LLMConfig
 from models import PullRequestInfo, ReviewComment, ReviewData, ReviewState
+
+
+@pytest.fixture
+def mock_github_config():
+    """Mock GitHub configuration for testing."""
+    return GitHubConfig(
+        token=SecretStr("test_github_token"), api_base_url="https://api.github.com"
+    )
+
+
+@pytest.fixture
+def mock_llm_config():
+    """Mock LLM configuration for testing."""
+    return LLMConfig(temperature=0.1, max_tokens=4000, retry=3)
+
+
+@pytest.fixture
+def mock_app_config():
+    """Mock app configuration for testing."""
+    return AppConfig(log_level="INFO", max_comments_per_request=100)
+
+
+@pytest.fixture
+def mock_config(mock_github_config, mock_llm_config, mock_app_config):
+    """Complete mock configuration for testing."""
+    return Mock(github=mock_github_config, llm=mock_llm_config, app=mock_app_config)
+
+
+@pytest.fixture
+def patch_get_config(mock_config):
+    """Patch get_config function to return mock configuration."""
+    with patch("config.config.get_config", return_value=mock_config):
+        yield mock_config
 
 
 @pytest.fixture

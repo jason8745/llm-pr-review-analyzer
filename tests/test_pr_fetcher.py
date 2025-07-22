@@ -8,22 +8,41 @@ from pydantic import SecretStr
 from config.config import GitHubConfig
 from models import PullRequestInfo, ReviewComment, ReviewData, ReviewState
 from pr_fetcher import GitHubClient
-from utils import GitHubAPIError, PullRequestNotFoundError, RepositoryNotFoundError
+from utils import (
+    GitHubAPIError,
+    PullRequestNotFoundError,
+    RateLimitError,
+    RepositoryNotFoundError,
+)
 
 
 class TestGitHubClient:
     """Test cases for GitHubClient class."""
 
-    def test_init_with_token(self):
+    @patch("config.config.get_config")
+    def test_init_with_token(self, mock_get_config):
         """Test GitHubClient initialization with explicit token."""
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "config_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
+
         with patch("pr_fetcher.Github") as mock_github:
             client = GitHubClient(token="explicit_token")
 
             assert client.token == "explicit_token"
             mock_github.assert_called_once()
 
-    def test_init_with_base_url(self):
+    @patch("config.config.get_config")
+    def test_init_with_base_url(self, mock_get_config):
         """Test GitHubClient initialization with base URL."""
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "config_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
+
         with patch("pr_fetcher.Github") as mock_github:
             client = GitHubClient(
                 token="test_token", base_url="https://enterprise.github.com/api/v3"
@@ -105,8 +124,15 @@ class TestGitHubClient:
                 base_url="https://enterprise.github.com/api/v3",
             )
 
-    def test_check_rate_limit_normal(self):
+    @patch("config.config.get_config")
+    def test_check_rate_limit_normal(self, mock_get_config):
         """Test rate limit checking with normal limits."""
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "test_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
+
         with patch("pr_fetcher.Github") as mock_github:
             # Setup mock rate limit
             mock_rate_limit = Mock()
@@ -123,9 +149,14 @@ class TestGitHubClient:
             assert client._rate_limit_remaining == 1000
             assert client._rate_limit_reset == 1234567890
 
-    def test_check_rate_limit_low_remaining(self):
+    @patch("config.config.get_config")
+    def test_check_rate_limit_low_remaining(self, mock_get_config):
         """Test rate limit checking with low remaining requests."""
-        from utils import RateLimitError
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "test_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
 
         with patch("pr_fetcher.Github") as mock_github:
             # Setup mock rate limit with low remaining
@@ -142,8 +173,15 @@ class TestGitHubClient:
             with pytest.raises(RateLimitError):
                 client._check_rate_limit()
 
-    def test_get_repository_success(self):
+    @patch("config.config.get_config")
+    def test_get_repository_success(self, mock_get_config):
         """Test successful repository retrieval."""
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "test_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
+
         with patch("pr_fetcher.Github") as mock_github:
             mock_repo = Mock()
             mock_github_instance = Mock()
@@ -161,9 +199,16 @@ class TestGitHubClient:
             assert result == mock_repo
             mock_github_instance.get_repo.assert_called_once_with("owner/repo")
 
-    def test_get_repository_not_found(self):
+    @patch("config.config.get_config")
+    def test_get_repository_not_found(self, mock_get_config):
         """Test repository not found error."""
         from github import GithubException
+
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "test_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
 
         with patch("pr_fetcher.Github") as mock_github:
             mock_github_instance = Mock()
@@ -182,8 +227,14 @@ class TestGitHubClient:
             with pytest.raises(RepositoryNotFoundError):
                 client.get_repository("owner/nonexistent")
 
-    def test_convert_review_comment(self):
+    @patch("config.config.get_config")
+    def test_convert_review_comment(self, mock_get_config):
         """Test conversion of GitHub review comment."""
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "test_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
         with patch("pr_fetcher.Github"):
             client = GitHubClient(token="test_token")
 
@@ -209,8 +260,15 @@ class TestGitHubClient:
             assert result.commit_sha == "abc123"
             assert result.review_id == 67890
 
-    def test_convert_issue_comment(self):
+    @patch("config.config.get_config")
+    def test_convert_issue_comment(self, mock_get_config):
         """Test conversion of GitHub issue comment."""
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "test_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
+
         with patch("pr_fetcher.Github"):
             client = GitHubClient(token="test_token")
 
@@ -230,8 +288,15 @@ class TestGitHubClient:
             assert result.file_path is None
             assert result.line_number is None
 
-    def test_extract_pr_info(self):
+    @patch("config.config.get_config")
+    def test_extract_pr_info(self, mock_get_config):
         """Test PR info extraction."""
+        # Setup mock config
+        mock_config = Mock()
+        mock_config.github.token.get_secret_value.return_value = "test_token"
+        mock_config.github.api_base_url = "https://api.github.com"
+        mock_get_config.return_value = mock_config
+
         with patch("pr_fetcher.Github"):
             client = GitHubClient(token="test_token")
 

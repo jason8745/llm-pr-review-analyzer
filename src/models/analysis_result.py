@@ -50,6 +50,8 @@ class ReviewerResponse:
     reviewer: str
     response: str  # English response under 30 words
     copilot_instruction: str  # Specific instruction for Copilot agent
+    commit_group: Optional[str] = None  # Logical grouping identifier
+    suggested_commit_message: Optional[str] = None  # Suggested commit message
 
     # Enhanced context information
     original_comment: Optional[str] = None  # The original comment text
@@ -116,6 +118,10 @@ class ReviewInsight:
                         reviewer=resp_data.get("reviewer", ""),
                         response=resp_data.get("response", ""),
                         copilot_instruction=resp_data.get("copilot_instruction", ""),
+                        commit_group=resp_data.get("commit_group", None),
+                        suggested_commit_message=resp_data.get(
+                            "suggested_commit_message", None
+                        ),
                         original_comment=resp_data.get("original_comment", None),
                     )
                 )
@@ -193,3 +199,36 @@ class AnalysisResult:
             or insight.immediate_actions
             or insight.reviewer_responses
         ]
+
+    def get_reviewer_responses_by_commit_group(
+        self,
+    ) -> Dict[str, List[ReviewerResponse]]:
+        """Group all reviewer responses by their commit groups."""
+        from collections import defaultdict
+
+        grouped_responses = defaultdict(list)
+
+        for insight in self.insights:
+            for response in insight.reviewer_responses:
+                if response.commit_group:
+                    grouped_responses[response.commit_group].append(response)
+                else:
+                    # Default group for ungrouped responses
+                    grouped_responses["general"].append(response)
+
+        return dict(grouped_responses)
+
+    def get_suggested_commit_messages(self) -> Dict[str, str]:
+        """Get unique suggested commit messages by commit group."""
+        commit_messages = {}
+
+        for insight in self.insights:
+            for response in insight.reviewer_responses:
+                if response.commit_group and response.suggested_commit_message:
+                    # Use the first commit message found for each group
+                    if response.commit_group not in commit_messages:
+                        commit_messages[response.commit_group] = (
+                            response.suggested_commit_message
+                        )
+
+        return commit_messages

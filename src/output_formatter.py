@@ -79,87 +79,84 @@ class OutputFormatter:
                         lines.append(f"- {insight}")
                     lines.append("")
 
-        # Section 5: Reviewer Response Suggestions
-        all_reviewer_responses = []
+        # Section 5: Reviewer Response Suggestions (Grouped by Commit Logic)
+        commit_groups = result.get_reviewer_responses_by_commit_group()
+        commit_messages = result.get_suggested_commit_messages()
 
-        for insight in result.insights:
-            if hasattr(insight, "reviewer_responses") and insight.reviewer_responses:
-                # Attach insight context to each response for better formatting
-                for response in insight.reviewer_responses:
-                    enhanced_response = {
-                        "reviewer": response.reviewer,
-                        "response": response.response,
-                        "copilot_instruction": response.copilot_instruction,
-                        "original_comment": getattr(response, "original_comment", None),
-                        "insight_category": insight.category.value,
-                        "insight_description": insight.description,
-                        "examples": insight.examples[:2]
-                        if insight.examples
-                        else [],  # Include relevant code examples for context
-                        "affected_files": getattr(insight, "affected_files", [])
-                        if hasattr(insight, "affected_files")
-                        else [],
-                    }
-                    all_reviewer_responses.append(enhanced_response)
+        if commit_groups:
+            lines.extend(["## 💬 Reviewer 回覆建議 (按 Commit 邏輯分組)", ""])
 
-        if all_reviewer_responses:
-            lines.extend(["## 💬 Reviewer 回覆建議", ""])
+            for group_name, responses in commit_groups.items():
+                if not responses:
+                    continue
 
-            for i, response in enumerate(all_reviewer_responses, 1):
-                lines.extend([f"### {i}. 回覆給 {response['reviewer']}", ""])
-
-                # Add technical domain context if available
-                if (
-                    response["insight_category"]
-                    and response["insight_category"] != "other"
-                ):
-                    lines.extend(
-                        [
-                            f"**技術領域：** {response['insight_category'].replace('_', ' ').title()}",
-                            "",
-                        ]
-                    )
-
-                # Add original comment reference if available
-                if "original_comment" in response and response["original_comment"]:
-                    lines.extend(
-                        [f'**原始評論：** "{response["original_comment"]}"', ""]
-                    )
-
-                if response["insight_description"]:
-                    lines.extend(
-                        [
-                            f"**相關洞察：** {response['insight_description'][:200]}{'...' if len(response['insight_description']) > 200 else ''}",
-                            "",
-                        ]
-                    )
-
-                # Add affected files reference if available
-                if response["affected_files"]:
-                    lines.extend(
-                        [
-                            f"**相關檔案：** {', '.join(response['affected_files'][:3])}",
-                            "",
-                        ]
-                    )
-
-                # Add code examples for context if available
-                if response["examples"]:
-                    lines.extend([f"**相關評論範例：**", ""])
-                    for example in response["examples"]:
-                        lines.extend([f"> {example}", ""])
-
-                lines.extend(
-                    [
-                        f"**English Response:** {response['response']}",
-                        "",
-                        f"**Copilot 修改指令:**",
-                        f"```",
-                        response["copilot_instruction"],
-                        f"```",
-                        "",
-                    ]
+                # Format group header with suggested commit message
+                group_display_name = (
+                    group_name.replace("_", " ").replace("-", " ").title()
                 )
+                lines.extend([f"### 🔄 {group_display_name}", ""])
+
+                if group_name in commit_messages:
+                    lines.extend(
+                        [
+                            f"**建議 Commit Message:** `{commit_messages[group_name]}`",
+                            "",
+                        ]
+                    )
+
+                # Group responses by reviewer to avoid repetition
+                for i, response in enumerate(responses, 1):
+                    # Find the original insight for context
+                    insight_context = None
+                    for insight in result.insights:
+                        if response in insight.reviewer_responses:
+                            insight_context = insight
+                            break
+
+                    lines.extend([f"#### {i}. 回覆給 {response.reviewer}", ""])
+
+                    # Add original comment reference if available
+                    if response.original_comment:
+                        lines.extend(
+                            [f'**原始評論：** "{response.original_comment}"', ""]
+                        )
+
+                    # Add technical context from insight
+                    if insight_context:
+                        lines.extend(
+                            [
+                                f"**技術領域：** {insight_context.category.value.replace('_', ' ').title()}",
+                                f"**相關洞察：** {insight_context.description[:150]}{'...' if len(insight_context.description) > 150 else ''}",
+                                "",
+                            ]
+                        )
+
+                        # Add code examples for context if available
+                        if insight_context.examples:
+                            lines.extend([f"**相關評論範例：**", ""])
+                            for example in insight_context.examples[
+                                :1
+                            ]:  # Only show first example
+                                lines.extend(
+                                    [
+                                        f"> {example[:200]}{'...' if len(example) > 200 else ''}",
+                                        "",
+                                    ]
+                                )
+
+                    lines.extend(
+                        [
+                            f"**English Response:** {response.response}",
+                            "",
+                            f"**Copilot 修改指令:**",
+                            f"```",
+                            response.copilot_instruction,
+                            f"```",
+                            "",
+                        ]
+                    )
+
+                lines.append("")  # Extra space between commit groups
 
         return "\n".join(lines)
 

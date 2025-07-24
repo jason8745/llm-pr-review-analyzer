@@ -24,6 +24,30 @@ class PromptTemplates:
 2. 理解 reviewer 的關注點背後的原因和經驗
 3. 將隱性知識轉化為可學習的洞察
 4. 發現 PR 創建者可能的知識盲點
+5. 按邏輯相關性將改進建議分組，並提供建議的 commit message
+
+## Copilot 指令格式指南
+
+所有 Copilot 指令必須遵循「先分析，後行動」的模式：
+
+**格式範例：**
+- `First analyze: What are the current error handling patterns in this function? After analysis, if needed: Add try-catch blocks around the database calls and implement proper error logging.`
+- `First analyze: How is this component currently handling state updates? After analysis, if needed: Refactor to use React.useCallback to prevent unnecessary re-renders.`
+- `First analyze: What naming conventions are being used in this module? After analysis, if needed: Rename variables to follow camelCase convention (e.g., user_id → userId).`
+
+## Commit 分組邏輯
+
+將相關的改進建議按以下類型分組：
+- **error-handling**: 錯誤處理相關改進
+- **performance-optimization**: 性能優化相關
+- **code-style**: 代碼風格和格式化
+- **naming-conventions**: 命名規範改進
+- **type-safety**: 類型安全性改進
+- **architecture-refactor**: 架構重構
+- **documentation**: 文檔和註釋改進
+- **security**: 安全性改進
+- **testing**: 測試相關改進
+- **general**: 其他通用改進
 
 所有回應必須使用繁體中文，並以教學和知識傳遞為導向。"""
 
@@ -68,7 +92,9 @@ PR 背景資訊：
             "reviewer": "reviewer_name",
             "original_comment": "簡短引用 reviewer 的原始評論片段 (20-30字)",
             "response": "Brief English response acknowledging their insight (<30 words)",
-            "copilot_instruction": "Specific technical instruction for Copilot agent to implement the reviewer's suggestion"
+            "copilot_instruction": "First analyze: [specific question about the current code]. After analysis, if needed: [concrete action for Copilot to implement the reviewer's suggestion]",
+            "commit_group": "logical grouping identifier for related changes (e.g., 'error-handling', 'performance-optimization', 'code-style')",
+            "suggested_commit_message": "Suggested commit message for this type of change (following conventional commits format)"
         }}
     ]
 }}
@@ -77,6 +103,8 @@ PR 背景資訊：
 1. 將 reviewer 的隱性知識轉化為 PR 創建者可學習的明確洞察
 2. 為每個 reviewer 生成簡潔的英文回覆，體現對其專業洞察的理解
 3. 提供精確的 Copilot 指令，基於 reviewer 的技術建議進行代碼修改
+4. 按邏輯相關性將建議分組，為每組提供建議的 commit message
+5. Copilot 指令應遵循「先分析，後行動」的模式，確保理解後再實施
 """
 
         return ChatPromptTemplate.from_messages(
@@ -125,7 +153,9 @@ PR 背景資訊：
             "reviewer": "reviewer_name",
             "original_comment": "簡短引用此 reviewer 的關鍵評論 (20-30字)",
             "response": "Brief English response acknowledging their overall contribution (<30 words)",
-            "copilot_instruction": "Strategic instruction for Copilot agent based on collective reviewer wisdom"
+            "copilot_instruction": "First analyze: [strategic question about overall code patterns]. After analysis, if needed: [strategic instruction for Copilot agent based on collective reviewer wisdom]",
+            "commit_group": "strategic grouping for overall improvements (e.g., 'architecture-refactor', 'team-standards', 'best-practices')",
+            "suggested_commit_message": "Strategic commit message for systematic improvements"
         }}
     ]
 }}
@@ -133,7 +163,8 @@ PR 背景資訊：
 目標：
 1. 將 reviewer 的集體智慧轉化為 PR 創建者的學習藍圖
 2. 為主要 reviewer 生成感謝回覆，體現對其貢獻的認可
-3. 提供整體的 Copilot 改進策略
+3. 提供整體的 Copilot 改進策略，按邏輯分組並提供建議的 commit message
+4. 確保 Copilot 指令遵循「先分析，後行動」的模式
 """
 
         return ChatPromptTemplate.from_messages(

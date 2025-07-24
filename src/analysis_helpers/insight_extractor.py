@@ -169,16 +169,53 @@ class InsightExtractor:
                 )
 
                 if tech_knowledge and len(tech_knowledge.strip()) > 20:
-                    return f"{knowledge_area}: {tech_knowledge[:150]}{'...' if len(tech_knowledge) > 150 else ''}"
+                    # For Chinese content, use more characters and avoid mid-word cuts
+                    truncated_knowledge = InsightExtractor._smart_truncate(
+                        tech_knowledge, 300
+                    )
+                    return f"{knowledge_area}: {truncated_knowledge}"
                 elif experience and len(experience.strip()) > 20:
-                    return f"{knowledge_area}: {experience[:150]}{'...' if len(experience) > 150 else ''}"
+                    truncated_experience = InsightExtractor._smart_truncate(
+                        experience, 300
+                    )
+                    return f"{knowledge_area}: {truncated_experience}"
 
             # Fallback to description
-            return f"{knowledge_area}: {insight.description[:150]}{'...' if len(insight.description) > 150 else ''}"
+            truncated_description = InsightExtractor._smart_truncate(
+                insight.description, 300
+            )
+            return f"{knowledge_area}: {truncated_description}"
 
         except Exception as e:
             logger.warning(f"Error formatting knowledge insight: {e}")
             return None
+
+    @staticmethod
+    def _smart_truncate(text: str, max_length: int) -> str:
+        """Smart truncation that avoids breaking words and handles Chinese text properly."""
+        if len(text) <= max_length:
+            return text.strip()
+
+        # Truncate at max_length
+        truncated = text[:max_length].strip()
+
+        # Define Chinese punctuation marks
+        chinese_punctuation = """。！？，、；：）】｝"'》"""
+
+        # If the last character is not punctuation, try to find a good break point
+        if truncated and truncated[-1] not in chinese_punctuation:
+            # Look for the last punctuation mark within the last 50 characters
+            last_punct_pos = -1
+            for i in range(len(truncated) - 1, max(0, len(truncated) - 50), -1):
+                if truncated[i] in chinese_punctuation:
+                    last_punct_pos = i
+                    break
+
+            # If found a good break point, use it
+            if last_punct_pos > 0:
+                truncated = truncated[: last_punct_pos + 1]
+
+        return truncated
 
     @staticmethod
     def _extract_legacy_insight(insight: ReviewInsight) -> str:

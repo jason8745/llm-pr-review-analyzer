@@ -37,17 +37,35 @@ class PromptTemplates:
 
 ## Commit 分組邏輯
 
-將相關的改進建議按以下類型分組：
-- **error-handling**: 錯誤處理相關改進
+將相關的改進建議按以下類型分組，但要確保同一組內的修改能用同一個 commit message 合理描述：
+
+**分組原則：**
+1. **具體性優先**：優先按具體修改內容分組，而非廣泛的技術領域
+2. **commit message 一致性**：同一組內的所有修改都應該能用同一個 commit message 合理描述
+3. **避免重複分組**：同一個 comment 不應該出現在多個 group 中
+
+**分組類別：**
+- **error-handling-checks**: 各種錯誤檢查（null/nil/undefined/None等）
+- **error-handling-messages**: 錯誤訊息內容改善
+- **error-handling-types**: 錯誤類型定義和常數
 - **performance-optimization**: 性能優化相關
-- **code-style**: 代碼風格和格式化
+- **code-style-formatting**: 代碼格式化和風格
+- **code-style-constants**: 使用標準庫常數替代硬編碼值
 - **naming-conventions**: 命名規範改進
 - **type-safety**: 類型安全性改進
 - **architecture-refactor**: 架構重構
-- **documentation**: 文檔和註釋改進
-- **security**: 安全性改進
-- **testing**: 測試相關改進
-- **general**: 其他通用改進
+- **documentation-examples**: 文檔和使用範例
+- **documentation-comments**: 代碼註釋改進
+- **security-validation**: 安全性檢查和驗證
+- **security-sanitization**: 輸入清理和消毒
+- **testing-coverage**: 測試覆蓋率改進
+- **testing-quality**: 測試品質改進
+- **input-validation**: 輸入驗證和預處理
+- **logging-structure**: 日誌結構化改進
+- **logging-content**: 日誌內容準確性
+- **dependency-management**: 依賴管理改進
+- **configuration**: 配置管理改進
+- **general**: 其他無法明確分類的改進
 
 所有回應必須使用繁體中文，並以教學和知識傳遞為導向。"""
 
@@ -90,11 +108,11 @@ PR 背景資訊：
     "reviewer_responses": [
         {{
             "reviewer": "reviewer_name",
-            "original_comment": "簡短引用 reviewer 的原始評論片段 (20-30字)",
-            "response": "Brief English response acknowledging their insight (<30 words)",
-            "copilot_instruction": "First analyze: [specific question about the current code]. After analysis, if needed: [concrete action for Copilot to implement the reviewer's suggestion]",
-            "commit_group": "logical grouping identifier for related changes (e.g., 'error-handling', 'performance-optimization', 'code-style')",
-            "suggested_commit_message": "Suggested commit message for this type of change (following conventional commits format)"
+            "original_comment": "完整引用 reviewer 的原始評論內容",
+            "response": "Brief English response acknowledging their specific insight (<30 words)",
+            "copilot_instruction": "First analyze: [specific question about the current code related to this comment]. After analysis, if needed: [concrete action for Copilot to implement THIS SPECIFIC reviewer's suggestion]",
+            "commit_group": "precise grouping identifier that accurately represents the specific change needed (e.g., 'error-handling-checks', 'code-style-constants', 'input-validation')",
+            "suggested_commit_message": "Specific commit message that accurately describes this individual comment's suggested change (following conventional commits format)"
         }}
     ]
 }}
@@ -103,8 +121,18 @@ PR 背景資訊：
 1. 將 reviewer 的隱性知識轉化為 PR 創建者可學習的明確洞察
 2. 為每個 reviewer 生成簡潔的英文回覆，體現對其專業洞察的理解
 3. 提供精確的 Copilot 指令，基於 reviewer 的技術建議進行代碼修改
-4. 按邏輯相關性將建議分組，為每組提供建議的 commit message
+4. **關鍵分組原則**：
+   - 每個 commit_group 必須能用同一個 commit message 合理描述組內所有修改
+   - 相同的 reviewer comment 不可重複出現在不同 group 中
+   - 優先按具體修改內容分組，而非廣泛技術領域
+   - commit message 必須精確對應該組包含的所有 comment
 5. Copilot 指令應遵循「先分析，後行動」的模式，確保理解後再實施
+
+**分組例子說明**：
+- ❌ 錯誤：將 "null/nil check" 和 "error message format" 放在同一個 "error-handling" 組
+- ✅ 正確：分別歸為 "error-handling-checks" 和 "error-handling-messages" 組
+- ❌ 錯誤：將 "variable naming" 和 "function naming" 放在不同組
+- ✅ 正確：都歸為 "naming-conventions" 組，因為能用同一個 commit message 描述
 """
 
         return ChatPromptTemplate.from_messages(
@@ -151,11 +179,11 @@ PR 背景資訊：
     "reviewer_responses": [
         {{
             "reviewer": "reviewer_name",
-            "original_comment": "簡短引用此 reviewer 的關鍵評論 (20-30字)",
+            "original_comment": "完整引用此 reviewer 的關鍵評論內容",
             "response": "Brief English response acknowledging their overall contribution (<30 words)",
-            "copilot_instruction": "First analyze: [strategic question about overall code patterns]. After analysis, if needed: [strategic instruction for Copilot agent based on collective reviewer wisdom]",
-            "commit_group": "strategic grouping for overall improvements (e.g., 'architecture-refactor', 'team-standards', 'best-practices')",
-            "suggested_commit_message": "Strategic commit message for systematic improvements"
+            "copilot_instruction": "First analyze: [strategic question about overall code patterns related to this reviewer's focus]. After analysis, if needed: [strategic instruction for Copilot agent based on this reviewer's specific wisdom]",
+            "commit_group": "strategic grouping for overall improvements that accurately represents this reviewer's contribution (e.g., 'architecture-refactor', 'team-standards', 'best-practices')",
+            "suggested_commit_message": "Strategic commit message for systematic improvements based on this reviewer's specific insights"
         }}
     ]
 }}

@@ -20,13 +20,33 @@ class ChainExecutor:
         """Execute chain with retry logic and exponential backoff."""
         for attempt in range(self.retry_count):
             try:
+                logger.info(f"Executing chain attempt {attempt + 1}/{self.retry_count}")
+                logger.debug(f"Input data keys: {list(input_data.keys())}")
+
                 result = chain.invoke(input_data)
+
+                logger.info(f"Chain execution successful on attempt {attempt + 1}")
+                logger.debug(
+                    f"Result type: {type(result)}, length: {len(str(result)) if result else 0}"
+                )
+
+                # Log if result is empty or None
+                if not result:
+                    logger.warning(f"Chain returned empty result: {result}")
+                elif isinstance(result, str) and not result.strip():
+                    logger.warning(f"Chain returned empty string")
+
                 return result
             except Exception as e:
                 logger.warning(f"Chain execution attempt {attempt + 1} failed: {e}")
+                logger.debug(f"Exception type: {type(e)}, details: {str(e)}")
+
                 if attempt < self.retry_count - 1:
-                    time.sleep(2**attempt)  # Exponential backoff
+                    wait_time = 2**attempt
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)  # Exponential backoff
                 else:
+                    logger.error(f"All {self.retry_count} attempts failed")
                     raise LLMAnalysisError(
                         f"Chain execution failed after {self.retry_count} attempts: {e}"
                     )

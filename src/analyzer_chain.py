@@ -34,14 +34,29 @@ def get_llm_client(config: Optional[Config] = None) -> AzureChatOpenAI:
     if config is None:
         config = get_config()
 
-    return AzureChatOpenAI(
-        azure_deployment=config.azure_openai.deployment,
-        azure_endpoint=config.azure_openai.endpoint,
-        api_version=config.azure_openai.api_version,
-        api_key=config.azure_openai.api_key.get_secret_value(),
-        temperature=config.llm.temperature,
-        max_tokens=config.llm.max_tokens,
+    logger.info(
+        f"Creating Azure OpenAI client with deployment: {config.azure_openai.deployment}"
     )
+    logger.info(f"Endpoint: {config.azure_openai.endpoint}")
+    logger.info(f"API version: {config.azure_openai.api_version}")
+    logger.info(
+        f"Temperature: {config.llm.temperature}, Max tokens: {config.llm.max_tokens}"
+    )
+
+    try:
+        client = AzureChatOpenAI(
+            azure_deployment=config.azure_openai.deployment,
+            azure_endpoint=config.azure_openai.endpoint,
+            api_version=config.azure_openai.api_version,
+            api_key=config.azure_openai.api_key.get_secret_value(),
+            temperature=config.llm.temperature,
+            max_tokens=config.llm.max_tokens,
+        )
+        logger.info("Azure OpenAI client created successfully")
+        return client
+    except Exception as e:
+        logger.error(f"Failed to create Azure OpenAI client: {e}")
+        raise LLMAnalysisError(f"Azure OpenAI client initialization failed: {e}")
 
 
 class ReviewAnalyzer:
@@ -205,6 +220,13 @@ class ReviewAnalyzer:
             )
 
             if analysis_data:
+                # Validate that analysis_data is a dict
+                if not isinstance(analysis_data, dict):
+                    logger.warning(
+                        f"Expected dict from LLM but got {type(analysis_data)}: {analysis_data}"
+                    )
+                    return None
+
                 # Use the new from_llm_response method if data is comprehensive
                 if isinstance(analysis_data, dict) and (
                     "reviewer_insights" in analysis_data

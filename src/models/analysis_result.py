@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from utils.logging_config import get_logger
+
 
 class ReviewCategory(Enum):
     """Categories of review feedback."""
@@ -78,9 +80,28 @@ class ReviewInsight:
     )  # Simplified from learning_opportunities
     reviewer_responses: List[ReviewerResponse] = field(default_factory=list)
 
+    @staticmethod
+    def _get_logger():
+        """Get logger instance."""
+        return get_logger(__name__)
+
     @classmethod
-    def from_llm_response(cls, data: Dict[str, Any]) -> "ReviewInsight":
+    def from_llm_response(cls, data: Any) -> "ReviewInsight":
         """Create ReviewInsight from LLM JSON response."""
+        # Handle case where data is not a dict (e.g., it's a list or None)
+        if not isinstance(data, dict):
+            logger = cls._get_logger()
+            logger.warning(f"Expected dict but got {type(data)}: {data}")
+            # Return a minimal ReviewInsight with error info
+            return cls(
+                category=ReviewCategory.OTHER,
+                description="Failed to parse LLM response - received non-dict data",
+                frequency=1,
+                severity=Severity.LOW,
+                immediate_actions=["Review LLM response format"],
+                reviewer_responses=[],
+            )
+
         # Basic fields
         category = ReviewCategory(data.get("category", "other"))
         description = data.get("description", "")
@@ -203,13 +224,27 @@ class AnalysisResult:
     def get_reviewer_responses_by_commit_group(
         self,
     ) -> Dict[str, List[ReviewerResponse]]:
-        """Group all reviewer responses by their commit groups."""
+        """Group all reviewer responses by their commit groups, removing duplicates."""
         from collections import defaultdict
 
         grouped_responses = defaultdict(list)
+        seen_responses = set()  # Track seen responses to avoid duplicates
 
         for insight in self.insights:
             for response in insight.reviewer_responses:
+                # Create a unique key for this response to detect duplicates
+                response_key = (
+                    response.reviewer,
+                    response.original_comment,
+                    response.commit_group,
+                )
+
+                # Skip if we've already seen this exact response
+                if response_key in seen_responses:
+                    continue
+
+                seen_responses.add(response_key)
+
                 if response.commit_group:
                     grouped_responses[response.commit_group].append(response)
                 else:

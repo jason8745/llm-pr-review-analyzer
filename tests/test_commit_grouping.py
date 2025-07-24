@@ -239,6 +239,45 @@ class TestCommitGrouping:
         assert grouped_responses == {}
         assert commit_messages == {}
 
+    def test_duplicate_response_removal(self):
+        """Test that duplicate reviewer responses are removed."""
+        # Create the same response for the same comment
+        duplicate_response = self.create_sample_reviewer_response(
+            "alice", "error-handling", "feat: improve error handling"
+        )
+        duplicate_response.original_comment = "This needs better error handling"
+
+        # Create two insights with the same response (simulating the duplication issue)
+        insight1 = ReviewInsight(
+            category=ReviewCategory.ERROR_HANDLING,
+            description="Error handling improvements",
+            frequency=1,
+            severity=Severity.HIGH,
+            reviewer_responses=[duplicate_response],
+        )
+
+        insight2 = ReviewInsight(
+            category=ReviewCategory.ARCHITECTURE,
+            description="Architecture improvements",
+            frequency=1,
+            severity=Severity.HIGH,
+            reviewer_responses=[duplicate_response],  # Same response
+        )
+
+        result = AnalysisResult(
+            pr_number=123,
+            repository="test/repo",
+            analysis_timestamp=datetime.now().isoformat(),
+            insights=[insight1, insight2],
+            reviewer_profiles=[],
+        )
+
+        grouped_responses = result.get_reviewer_responses_by_commit_group()
+
+        # Should only have one response in the error-handling group, not two
+        assert len(grouped_responses["error-handling"]) == 1
+        assert grouped_responses["error-handling"][0].reviewer == "alice"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
